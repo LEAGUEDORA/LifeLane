@@ -21,9 +21,9 @@ class _MyAppState extends State<MyApp> {
   String roleOfUser;
   _MyAppState({required this.nameOfUser, required this.roleOfUser});
 
+
   final loc.Location location = loc.Location();
   StreamSubscription<loc.LocationData>? _locationSubscription;
-
   @override
   void initState()  {
     super.initState();
@@ -161,6 +161,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future <void> _listenLocation(String nameOfUser, String roleOfUser) async {
+    // _stopListening();
     _locationSubscription = location.onLocationChanged.handleError((onError) {
       print(onError);
       _locationSubscription?.cancel();

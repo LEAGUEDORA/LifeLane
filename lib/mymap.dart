@@ -66,7 +66,25 @@ class _MyMapState extends State<MyMap> {
     super.dispose();
   }
 
-  void getPolyPoints(LatLng destinationLocation) async {
+  LatLng getDriver(name, snapshot){
+    print(name);
+    LatLng patient = LatLng(snapshot.data!.docs.singleWhere((element) => element['name'] == name)['latitude'], snapshot.data!.docs.singleWhere(
+            (element) => element['name'] == name)['longitude']);
+    return patient;
+  }
+
+  List<LatLng> getSourceAndDestination(snapshot){
+    Set<LatLng> set = {};
+    LatLng patient= LatLng(snapshot.data!.docs.singleWhere((element) => element.id == widget.user_id)['latitude'], snapshot.data!.docs.singleWhere(
+            (element) => element.id == widget.user_id)['longitude'] as double);
+    LatLng driver = getDriver(snapshot.data!.docs.singleWhere((element) => element.id == widget.user_id)['driver'], snapshot);
+
+    return [patient, driver];
+  }
+
+  void getPolyPoints(snapshot) async {
+    List<LatLng> points = getSourceAndDestination(snapshot);
+    print(points);
     PolylinePoints polyLinePoints = PolylinePoints();
 
     // PointLatLng(sourceLatitude!, sourceLatitude!),
@@ -74,8 +92,8 @@ class _MyMapState extends State<MyMap> {
     if (!gotPolyLines){
       PolylineResult result = await polyLinePoints.getRouteBetweenCoordinates(
           googleAPIKEY,
-          PointLatLng(sourceLatitude!, sourceLongitude!),
-          PointLatLng(destinationLocation.latitude, destinationLocation.longitude));
+          PointLatLng(points[0].latitude, points[0].longitude),
+          PointLatLng(points[1].latitude, points[1].longitude));
       if (result.points.isNotEmpty) {
         polyLineCoordinates = [];
         result.points.forEach(
@@ -89,8 +107,8 @@ class _MyMapState extends State<MyMap> {
 
   }
 
-  Set<Marker> getPoilceMarkers(destination){
-
+  Set<Marker> getPoilceMarkers(snapshot){
+    List<LatLng> locations = getSourceAndDestination(snapshot);
     FirebaseFirestore.instance.collection('location').snapshots().forEach((element) {
       for (var doc in element.docs) {
         if (doc['role'] == "police"){
@@ -106,13 +124,13 @@ class _MyMapState extends State<MyMap> {
 
     markers.add(
       Marker(
-          position: LatLng(sourceLatitude!, sourceLongitude!),
+          position: LatLng(locations[0].latitude, locations[0].longitude),
           markerId: MarkerId("source"),
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)),
     );
     markers.add(
       Marker(
-          position: destination,
+          position: LatLng(locations[1].latitude, locations[1].longitude),
           markerId: MarkerId("destination"),
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen)),
     );
@@ -139,11 +157,11 @@ class _MyMapState extends State<MyMap> {
         }
         LatLng destinationLocation = LatLng(snapshot.data!.docs.singleWhere((element) => element.id == widget.user_id)['latitude'], snapshot.data!.docs.singleWhere(
                 (element) => element.id == widget.user_id)['longitude'] as double);
-        getPolyPoints(destinationLocation);
+        getPolyPoints(snapshot);
         return GoogleMap(
           mapType: MapType.normal,
           markers:
-          getPoilceMarkers(destinationLocation),
+          getPoilceMarkers(snapshot),
           initialCameraPosition: CameraPosition(target: destinationLocation,
               zoom: 14.47
           ),
