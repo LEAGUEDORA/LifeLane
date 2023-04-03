@@ -9,26 +9,43 @@ import 'package:geolocator/geolocator.dart';
 
 class MyApp extends StatefulWidget {
   String nameOfUser;
-  MyApp({Key? key, required this.nameOfUser}): super(key: key);
+  String roleOfUser;
+  MyApp({Key? key, required this.nameOfUser, required this.roleOfUser}): super(key: key);
 
   @override
-  _MyAppState createState() => _MyAppState(nameOfUser: nameOfUser);
+  _MyAppState createState() => _MyAppState(nameOfUser: nameOfUser, roleOfUser: roleOfUser);
 }
 
 class _MyAppState extends State<MyApp> {
   String nameOfUser;
-  _MyAppState({required this.nameOfUser});
+  String roleOfUser;
+  _MyAppState({required this.nameOfUser, required this.roleOfUser});
 
   final loc.Location location = loc.Location();
   StreamSubscription<loc.LocationData>? _locationSubscription;
 
   @override
-  void initState() {
+  void initState()  {
     super.initState();
     _requestPermission();
     location.changeSettings(interval: 30, accuracy: loc.LocationAccuracy.high);
     location.enableBackgroundMode(enable: true);
+    final Future<loc.LocationData> _locationResult =  location.getLocation();
+    _locationResult.then((value) =>
+        {
+          FirebaseFirestore.instance.collection('location').doc(nameOfUser).set(
+          {
+          "name": nameOfUser,
+          "role": roleOfUser,
+          "latitude": value.latitude,
+          "longitude": value.longitude,
+            "driver": ""
+          }, SetOptions(merge: true))
+        }
+    );
+
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -39,50 +56,60 @@ class _MyAppState extends State<MyApp> {
       body: Column(
         children: [
           TextButton(onPressed: () {
-            _getLocation(nameOfUser);
-            _listenLocation(nameOfUser);
+            _getLocation(nameOfUser, roleOfUser);
+            _listenLocation(nameOfUser, roleOfUser);
           }, child: const Text("Call for Ambulance")),
-          // TextButton(onPressed: () {
-          //   _listenLocation(nameOfUser);
-          // }, child: const Text("enable live location")),
-          // TextButton(onPressed: () {
-          //   _stopListening();
-          // }, child: const Text("Stop live location")),
+          Column(
+            children:  const [
+              Text("Check your ambulance status",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20
+              ),)
+            ],
+          ),
           Expanded(
               child: StreamBuilder(
                 stream: FirebaseFirestore.instance.collection('location')
                     .snapshots(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                   if (!snapshot.hasData) {
-                    return Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator());
                   }
+
+
                   return ListView.builder(
                       itemCount: snapshot.data?.docs.length,
                       itemBuilder: (context, index) {
-                        return ListTile(
-                          title: Text(snapshot.data!.docs[index]['name']
-                              .toString()),
-                          subtitle: Row(
-                            children: [
-                              Text(snapshot.data!.docs[index]['latitude']
-                                  .toString()),
-                               SizedBox(
-                                width: 20,
-                              ),
-                              Text(snapshot.data!.docs[index]['longitude']
-                                  .toString()),
-                            ],
-                          ),
-                          trailing: IconButton(
-                            icon: Icon(Icons.directions),
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (context) =>
-                                      MyMap(snapshot.data!.docs[index].id))
-                              );
-                            },
-                          ),
-                        );
+                        if ((snapshot.data!.docs[index]['driver'] != "") && (snapshot.data!.docs[index]['role'] != "police") ){
+                          return ListTile(
+                            title: Text(snapshot.data!.docs[index]['name']
+                                .toString()),
+                            subtitle: Row(
+                              children: [
+                                Text(snapshot.data!.docs[index]['latitude']
+                                    .toString()),
+                                const SizedBox(
+                                  width: 20,
+                                ),
+                                Text(snapshot.data!.docs[index]['longitude']
+                                    .toString()),
+                              ],
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.directions),
+                              onPressed: () {
+                                Navigator.of(context).push(
+                                    MaterialPageRoute(builder: (context) =>
+                                        MyMap(snapshot.data!.docs[index].id))
+                                );
+                              },
+                            ),
+                          );
+                        }
+                        else {
+                          return Text("");
+                        }
                       });
                 },))
         ],
@@ -97,10 +124,13 @@ class _MyAppState extends State<MyApp> {
       var data = element.docs;
       for (var new_element in data) {
         var data = new_element.data();
-        double distanceInMeters = Geolocator.distanceBetween(currentLocation.latitude!, currentLocation.longitude!, data['latitude'], data['longitude']);
-        if (distanceInMeters < maximum && nameOfUser != data['name']) {
-          maximum = distanceInMeters;
-          name = data['name'];
+        if (data['role'] == "driver"){
+          double distanceInMeters = Geolocator.distanceBetween(currentLocation.latitude!, currentLocation.longitude!, data['latitude'], data['longitude']);
+          if (distanceInMeters/1000 < maximum && nameOfUser != data['name']) {
+            maximum = distanceInMeters;
+            name = data['name'];
+            insertDriverForDocument(nameOfUser, name);
+          }
         }
       }
     });
@@ -108,19 +138,21 @@ class _MyAppState extends State<MyApp> {
 
   }
 
-  _getLocation(String nameOfUser) async {
+  void insertDriverForDocument(String nameOfUser, String nameOfDriver) async {
+    await FirebaseFirestore.instance.collection('location').doc(nameOfUser).update({
+      "driver": nameOfDriver
+    });
+
+  }
+
+  _getLocation(String nameOfUser, String roleOfUser) async {
     try {
       final loc.LocationData _locationResult = await location.getLocation();
       var returedData = searchForNearestAmbulance(_locationResult, nameOfUser);
-      returedData.then(
-              (value) {
-                print(value);
-              }
-      );
       await FirebaseFirestore.instance.collection('location').doc(nameOfUser).set({
         'latitude': _locationResult.latitude,
         'longitude': _locationResult.longitude,
-        'name': nameOfUser
+        'name': nameOfUser,
       }, SetOptions(merge: true));
     }
     catch (e) {
@@ -128,7 +160,7 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  Future <void> _listenLocation(String nameOfUser) async {
+  Future <void> _listenLocation(String nameOfUser, String roleOfUser) async {
     _locationSubscription = location.onLocationChanged.handleError((onError) {
       print(onError);
       _locationSubscription?.cancel();
@@ -139,7 +171,7 @@ class _MyAppState extends State<MyApp> {
       await FirebaseFirestore.instance.collection('location').doc(nameOfUser).set({
         'latitude': currentLocation.latitude,
         'longitude': currentLocation.longitude,
-        'name': nameOfUser
+        'name': nameOfUser,
       }, SetOptions(merge: true));
     });
   }

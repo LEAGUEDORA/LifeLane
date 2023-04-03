@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:frontned/constants.dart';
+import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as loc;
 
@@ -22,11 +23,13 @@ class _MyMapState extends State<MyMap> {
   final loc.Location location = loc.Location();
   late GoogleMapController _controller;
   bool _added = false;
-  late double sourceLatitude;
-  late double sourceLongitude;
+  double? sourceLatitude;
+  double? sourceLongitude;
   StreamSubscription<loc.LocationData>? _locationSubscription;
   List<LatLng> polyLineCoordinates = [];
   bool gotPolyLines = false;
+  Set<Marker> markers = Set();
+
 
 
   @override
@@ -35,9 +38,8 @@ class _MyMapState extends State<MyMap> {
     getCurrentLocation();
   }
 
-  Future<void> getCurrentLocation() async{
+  Future<void> getCurrentLocation() async {
     _locationSubscription = location.onLocationChanged.handleError((onError) {
-      print(onError);
       _locationSubscription?.cancel();
       setState(() {
         _locationSubscription = null;
@@ -48,11 +50,14 @@ class _MyMapState extends State<MyMap> {
         return;
       }
         setState(() {
+          print("Setting state");
           sourceLatitude = currentLocation.latitude!;
           sourceLongitude = currentLocation.longitude!;
+
         });
     }
     );
+
   }
 
   @override
@@ -69,11 +74,8 @@ class _MyMapState extends State<MyMap> {
     if (!gotPolyLines){
       PolylineResult result = await polyLinePoints.getRouteBetweenCoordinates(
           googleAPIKEY,
-          PointLatLng(sourceLatitude, sourceLongitude),
+          PointLatLng(sourceLatitude!, sourceLongitude!),
           PointLatLng(destinationLocation.latitude, destinationLocation.longitude));
-      print("Result");
-      print(sourceLatitude);
-      print(result.points.toString());
       if (result.points.isNotEmpty) {
         polyLineCoordinates = [];
         result.points.forEach(
@@ -87,10 +89,46 @@ class _MyMapState extends State<MyMap> {
 
   }
 
+  Set<Marker> getPoilceMarkers(destination){
+
+    FirebaseFirestore.instance.collection('location').snapshots().forEach((element) {
+      for (var doc in element.docs) {
+        if (doc['role'] == "police"){
+
+          markers.add(Marker(
+                position: LatLng(doc['latitude'], doc['longitude']),
+                markerId: MarkerId("police" + doc['name']),
+                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue)),
+          );
+        }
+      }
+    });
+
+    markers.add(
+      Marker(
+          position: LatLng(sourceLatitude!, sourceLongitude!),
+          markerId: MarkerId("source"),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)),
+    );
+    markers.add(
+      Marker(
+          position: destination,
+          markerId: MarkerId("destination"),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen)),
+    );
+
+    return markers;
+
+  }
+
   @override
   Widget build(BuildContext context){
 
-    return Scaffold(body: StreamBuilder(
+    return Scaffold(
+      appBar:
+      AppBar(
+        title: const Text("Track it")),
+        body: StreamBuilder(
       stream: FirebaseFirestore.instance.collection('location').snapshots(),
       builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (_added) {
@@ -104,21 +142,14 @@ class _MyMapState extends State<MyMap> {
         getPolyPoints(destinationLocation);
         return GoogleMap(
           mapType: MapType.normal,
-          markers: {
-            Marker(position: LatLng(sourceLatitude!, sourceLongitude!),
-                markerId: const MarkerId("source"),
-                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)),
-            Marker(position: destinationLocation,
-                markerId: const MarkerId("destination"),
-                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueMagenta)),
-
-          },
+          markers:
+          getPoilceMarkers(destinationLocation),
           initialCameraPosition: CameraPosition(target: destinationLocation,
               zoom: 14.47
           ),
           polylines: {
             Polyline(
-                polylineId: PolylineId("source_dest_route"),
+                polylineId: const PolylineId("source_dest_route"),
                 points: polyLineCoordinates,
                 width: 4,
               color: Colors.blue
@@ -139,7 +170,7 @@ class _MyMapState extends State<MyMap> {
             (element) => element.id == widget.user_id)['latitude'],
         snapshot.data!.docs.singleWhere(
                 (element) => element.id == widget.user_id)['longitude'] as double),
-        zoom: 14.47,
+        zoom: 10,
     )));
   }
 }
