@@ -48,6 +48,9 @@ dependencies:
   flutter_google_places: ^0.3.0
   get: ^4.1.4
   http: any
+  localstorage: ^4.0.0+1
+  firebase_messaging: ^14.4.0
+  shared_preferences:  2.1.0
 
 dev_dependencies:
   flutter_test:
@@ -101,3 +104,7 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
+  assets:
+    - assets/police.png
+    - assets/ambulance.jpg
+    - assets/patient.png

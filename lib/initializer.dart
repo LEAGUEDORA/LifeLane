@@ -6,6 +6,8 @@ import 'package:frontned/mymap.dart';
 import 'package:location/location.dart' as loc;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:localstorage/localstorage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MyApp extends StatefulWidget {
   String nameOfUser;
@@ -16,7 +18,7 @@ class MyApp extends StatefulWidget {
   _MyAppState createState() => _MyAppState(nameOfUser: nameOfUser, roleOfUser: roleOfUser);
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp>  {
   String nameOfUser;
   String roleOfUser;
   _MyAppState({required this.nameOfUser, required this.roleOfUser});
@@ -26,6 +28,7 @@ class _MyAppState extends State<MyApp> {
   StreamSubscription<loc.LocationData>? _locationSubscription;
   @override
   void initState()  {
+    setValues(nameOfUser, roleOfUser);
     super.initState();
     _requestPermission();
     location.changeSettings(interval: 30, accuracy: loc.LocationAccuracy.high);
@@ -46,6 +49,15 @@ class _MyAppState extends State<MyApp> {
 
   }
 
+
+  void setValues(name, role) async {
+    print("Setting");
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    prefs.setString("name", nameOfUser);
+    prefs.setString("role", roleOfUser);
+    print(prefs.getString('name'));
+  }
 
   @override
   Widget build(BuildContext context) {

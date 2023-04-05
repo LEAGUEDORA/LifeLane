@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:frontned/initializer.dart';
+import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AskName extends StatelessWidget {
 
@@ -35,6 +37,32 @@ class _AsknameFormState extends State<AskNameFormStateFulWidget> {
   Role _role = Role.user;
   final userNameController = TextEditingController();
 
+
+
+  void redirectToMaps() async {
+
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    if (prefs.getString('name') != null){
+      Navigator.push((context), MaterialPageRoute(
+          builder: (context) =>  MyApp(nameOfUser: prefs.getString('name')!, roleOfUser: prefs.getString('role')!)
+      ));
+    }
+    // return false;
+
+  }
+
+@override
+  void initState() {
+    // final SharedPreferences prefs = await SharedPreferences.getInstance();
+    // if (prefs.getString('name') != null){
+    //   Navigator.push((context), MaterialPageRoute(
+    //       builder: (context) =>  MyApp(nameOfUser: prefs.getString('name')!, roleOfUser: prefs.getString('role')!)
+    //   ));
+    //   return;
+    // }
+    redirectToMaps();
+    super.initState();
+  }
   @override
   Widget build(BuildContext context) {
     return Column(

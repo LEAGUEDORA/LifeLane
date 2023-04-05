@@ -1,13 +1,15 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:frontned/constants.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as loc;
-
+import 'dart:ui' as ui;
 
 class MyMap extends StatefulWidget {
   final String user_id;
@@ -29,13 +31,34 @@ class _MyMapState extends State<MyMap> {
   List<LatLng> polyLineCoordinates = [];
   bool gotPolyLines = false;
   Set<Marker> markers = Set();
+  BitmapDescriptor driver = BitmapDescriptor.defaultMarker;
+  BitmapDescriptor patient = BitmapDescriptor.defaultMarker;
+  BitmapDescriptor police = BitmapDescriptor.defaultMarker;
 
 
+
+  static Future<Uint8List?> getBytesFromAsset(String path, int width) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(), targetWidth: width);
+    ui.FrameInfo fi = await codec.getNextFrame();
+    return (await fi.image.toByteData(format: ui.ImageByteFormat.png))?.buffer.asUint8List();
+  }
 
   @override
   void initState(){
+    getBytesFromAsset("assets/police.png", 64).then((onValue) {
+      police = BitmapDescriptor.fromBytes(onValue!);
+    });
+    getBytesFromAsset("assets/ambulance.jpg", 64).then((onValue) {
+      driver = BitmapDescriptor.fromBytes(onValue!);
+    });
+    getBytesFromAsset("assets/patient.png", 64).then((onValue) {
+      patient = BitmapDescriptor.fromBytes(onValue!);
+    });
+
     super.initState();
     getCurrentLocation();
+    // getImageMarkers();
   }
 
   Future<void> getCurrentLocation() async {
@@ -50,7 +73,7 @@ class _MyMapState extends State<MyMap> {
         return;
       }
         setState(() {
-          print("Setting state");
+          // print("Setting state");
           sourceLatitude = currentLocation.latitude!;
           sourceLongitude = currentLocation.longitude!;
 
@@ -67,7 +90,7 @@ class _MyMapState extends State<MyMap> {
   }
 
   LatLng getDriver(name, snapshot){
-    print(name);
+    // print(name);
     LatLng patient = LatLng(snapshot.data!.docs.singleWhere((element) => element['name'] == name)['latitude'], snapshot.data!.docs.singleWhere(
             (element) => element['name'] == name)['longitude']);
     return patient;
@@ -84,7 +107,7 @@ class _MyMapState extends State<MyMap> {
 
   void getPolyPoints(snapshot) async {
     List<LatLng> points = getSourceAndDestination(snapshot);
-    print(points);
+    // print(points);
     PolylinePoints polyLinePoints = PolylinePoints();
 
     // PointLatLng(sourceLatitude!, sourceLatitude!),
@@ -116,7 +139,7 @@ class _MyMapState extends State<MyMap> {
           markers.add(Marker(
                 position: LatLng(doc['latitude'], doc['longitude']),
                 markerId: MarkerId("police" + doc['name']),
-                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue)),
+                icon: police),
           );
         }
       }
@@ -125,14 +148,16 @@ class _MyMapState extends State<MyMap> {
     markers.add(
       Marker(
           position: LatLng(locations[0].latitude, locations[0].longitude),
-          markerId: MarkerId("source"),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)),
+          markerId: MarkerId("source"), // Patient
+          icon: patient),
+
+
     );
     markers.add(
       Marker(
           position: LatLng(locations[1].latitude, locations[1].longitude),
-          markerId: MarkerId("destination"),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen)),
+          markerId: MarkerId("destination"), // Driver
+          icon: driver),
     );
 
     return markers;
