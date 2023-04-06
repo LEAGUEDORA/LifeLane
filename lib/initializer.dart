@@ -32,7 +32,7 @@ class _MyAppState extends State<MyApp>  {
   void updateDatabase() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    var dburl = Uri.https('ambulance-api.vercel.app', "saveuser");
+    var dburl = Uri.https('ambulance-api-eight.vercel.app', "saveuser");
     var responsedriver = await http.post(dburl, body: {"name": nameOfUser, "role": roleOfUser, "token": prefs.getString('token')});
 
   }
@@ -192,19 +192,19 @@ class _MyAppState extends State<MyApp>  {
         }
       }
     });
-    var urldriver = Uri.https('ambulance-api.vercel.app', "alertdriver");
+    var urldriver = Uri.https('ambulance-api-eight.vercel.app', "alertdriver");
     print(urldriver);
-    var responsedriver = await http.post(urldriver, body: {"title": " Alert ⚠️" + nameOfUser + " is waiting for you", 'body': "Pick up " + nameOfUser + ". He is in emergency", "name": name});
+    var responsedriver = await http.post(urldriver, body: {"title": " Alert ⚠️" + nameOfUser + " is waiting for you", 'body': "Pick up " + nameOfUser + ". He is in emergency", "name": name, "id": nameOfUser});
     print(responsedriver.body);
-    var urlpatient = Uri.https('ambulance-api.vercel.app', "alertpatient");
+    var urlpatient = Uri.https('ambulance-api-eight.vercel.app', "alertpatient");
     print(urlpatient);
 
-    var responsepatient = await http.post(urlpatient, body: {"title": " Rescue is on the way ⚡ ", 'body': name + " is on the way to pick up you.", "name": nameOfUser});
+    var responsepatient = await http.post(urlpatient, body: {"title": " Rescue is on the way ⚡ ", 'body': name + " is on the way to pick up you.", "name": nameOfUser, "id": nameOfUser});
     print(responsepatient.body);
 
 
-    var url = Uri.https('ambulance-api.vercel.app', "alertpolice");
-    var response = await http.post(url, body: {"title": "Ambulance Alert ⚠️",});
+    var url = Uri.https('ambulance-api-eight.vercel.app', "alertpolice");
+    var response = await http.post(url, body: {"title": "Ambulance Alert ⚠️", "id": nameOfUser});
     return [maximum, name];
 
   }
