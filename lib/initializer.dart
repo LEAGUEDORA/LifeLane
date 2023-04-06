@@ -26,6 +26,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   String nameOfUser;
   String roleOfUser;
+  String partDriver = "";
   _MyAppState({required this.nameOfUser, required this.roleOfUser});
 
   final loc.Location location = loc.Location(); // Location tracker service
@@ -188,7 +189,8 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-  Future<List> searchForNearestAmbulance(
+
+  Future<List> searchForNearestAmbulance  (
       // This algorithm finds the nearest ambulance for the user
       loc.LocationData currentLocation,
       String nameOfUser) async {
@@ -203,7 +205,7 @@ class _MyAppState extends State<MyApp> {
       var data = element.docs;
       for (var new_element in data) {
         var data = new_element.data();
-        if (data['role'] == "driver") {
+        if (data['role'] == "driver" && data['driver'] == "") {
           double distanceInMeters = Geolocator.distanceBetween(
               currentLocation.latitude!,
               currentLocation.longitude!,
@@ -212,23 +214,23 @@ class _MyAppState extends State<MyApp> {
           if (distanceInMeters / 1000 < maximum && nameOfUser != data['name']) {
             maximum = distanceInMeters;
             name = data['name'];
-
             insertDriverForDocument(nameOfUser,
                 name); // Assigns the nearest driver to the patient in the firebase
+
           }
         }
       }
-    });
 
-    // Send notifications to Driver
-    var urldriver = Uri.https('ambulance-api-eight.vercel.app', "alertdriver");
-    var responsedriver = await http.post(urldriver, body: {
-      "title": " Alert ⚠️" + nameOfUser + " is waiting for you",
-      'body': "Pick up " + nameOfUser + ". He is in emergency",
-      "name": name,
-      "id": nameOfUser
     });
-
+    print(name);
+    // Send notification to driver
+    // var urldriver = Uri.https('ambulance-api-eight.vercel.app', "alertdriver");
+    // var responsedriver = await http.post(urldriver, body: {
+    //   "title": " Alert ⚠️" + nameOfUser + " is waiting for you",
+    //   'body': "Pick up " + nameOfUser + ". He is in emergency",
+    //   "name": name,
+    //   "id": nameOfUser
+    // });
     // Send notifications to patient
     var urlpatient =
         Uri.https('ambulance-api-eight.vercel.app', "alertpatient");
@@ -242,7 +244,7 @@ class _MyAppState extends State<MyApp> {
     // Send notifications to police
     var url = Uri.https('ambulance-api-eight.vercel.app', "alertpolice");
     var response = await http
-        .post(url, body: {"title": "Ambulance Alert ⚠️", "id": nameOfUser});
+        .post(url, body: {"title": "Ambulance Alert ⚠️", "body": "Clear traffic 🚥🚦🚸⛔", "id": nameOfUser});
     return [maximum, name];
   }
 
@@ -268,9 +270,11 @@ class _MyAppState extends State<MyApp> {
         'name': nameOfUser,
         'role': roleOfUser
       }, SetOptions(merge: true));
+
     } catch (e) {
       print(e);
     }
+
   }
 
   Future<void> _listenLocation(String nameOfUser, String roleOfUser) async {
