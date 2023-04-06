@@ -51,6 +51,7 @@ dependencies:
   localstorage: ^4.0.0+1
   firebase_messaging: ^14.4.0
   shared_preferences:  2.1.0
+  flutter_local_notifications: ^13.0.0
 
 dev_dependencies:
   flutter_test:

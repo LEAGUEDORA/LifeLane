@@ -1,6 +1,7 @@
 
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:frontned/mymap.dart';
 import 'package:location/location.dart' as loc;
@@ -8,7 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:http/http.dart' as http;
 class MyApp extends StatefulWidget {
   String nameOfUser;
   String roleOfUser;
@@ -26,11 +27,54 @@ class _MyAppState extends State<MyApp>  {
 
   final loc.Location location = loc.Location();
   StreamSubscription<loc.LocationData>? _locationSubscription;
+
+
+  void updateDatabase() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    var dburl = Uri.https('ambulance-api.vercel.app', "saveuser");
+    var responsedriver = await http.post(dburl, body: {"name": nameOfUser, "role": roleOfUser, "token": prefs.getString('token')});
+
+  }
+
+  Future<void> setupInteractedMessage() async {
+    // Get any messages which caused the application to open from
+    // a terminated state.
+    RemoteMessage? initialMessage =
+    await FirebaseMessaging.instance.getInitialMessage();
+
+    // If the message also contains a data property with a "type" of "chat",
+    // navigate to a chat screen
+    if (initialMessage != null) {
+      _handleMessage(initialMessage);
+    }
+
+    // Also handle any interaction when the app is in the background via a
+    // Stream listener
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+  }
+
+  void _handleMessage(RemoteMessage message) {
+    print("Handling Message");
+    print(message.data.toString());
+    if (message.data.containsKey("id")) {
+      var id = message.data['id'];
+
+      Navigator.push((context), MaterialPageRoute(
+          builder: (context) =>  MyMap(id))
+      );
+    }
+  }
+
+
+
   @override
   void initState()  {
     setValues(nameOfUser, roleOfUser);
+    updateDatabase();
     super.initState();
     _requestPermission();
+    setupInteractedMessage();
     location.changeSettings(interval: 30, accuracy: loc.LocationAccuracy.high);
     location.enableBackgroundMode(enable: true);
     final Future<loc.LocationData> _locationResult =  location.getLocation();
@@ -51,12 +95,11 @@ class _MyAppState extends State<MyApp>  {
 
 
   void setValues(name, role) async {
-    print("Setting");
     final SharedPreferences prefs = await SharedPreferences.getInstance();
 
     prefs.setString("name", nameOfUser);
     prefs.setString("role", roleOfUser);
-    print(prefs.getString('name'));
+    print(prefs.getString('role'));
   }
 
   @override
@@ -132,6 +175,8 @@ class _MyAppState extends State<MyApp>  {
   Future<List> searchForNearestAmbulance(loc.LocationData currentLocation, String nameOfUser) async {
     double maximum = double.maxFinite;
     String name = "";
+    String patient = "";
+
     FirebaseFirestore.instance.collection('location').snapshots().forEach((element) {
       var data = element.docs;
       for (var new_element in data) {
@@ -141,11 +186,25 @@ class _MyAppState extends State<MyApp>  {
           if (distanceInMeters/1000 < maximum && nameOfUser != data['name']) {
             maximum = distanceInMeters;
             name = data['name'];
+
             insertDriverForDocument(nameOfUser, name);
           }
         }
       }
     });
+    var urldriver = Uri.https('ambulance-api.vercel.app', "alertdriver");
+    print(urldriver);
+    var responsedriver = await http.post(urldriver, body: {"title": " Alert ⚠️" + nameOfUser + " is waiting for you", 'body': "Pick up " + nameOfUser + ". He is in emergency", "name": name});
+    print(responsedriver.body);
+    var urlpatient = Uri.https('ambulance-api.vercel.app', "alertpatient");
+    print(urlpatient);
+
+    var responsepatient = await http.post(urlpatient, body: {"title": " Rescue is on the way ⚡ ", 'body': name + " is on the way to pick up you.", "name": nameOfUser});
+    print(responsepatient.body);
+
+
+    var url = Uri.https('ambulance-api.vercel.app', "alertpolice");
+    var response = await http.post(url, body: {"title": "Ambulance Alert ⚠️",});
     return [maximum, name];
 
   }
@@ -165,6 +224,7 @@ class _MyAppState extends State<MyApp>  {
         'latitude': _locationResult.latitude,
         'longitude': _locationResult.longitude,
         'name': nameOfUser,
+        'role': roleOfUser
       }, SetOptions(merge: true));
     }
     catch (e) {

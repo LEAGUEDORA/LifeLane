@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:frontned/constants.dart';
-import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart' as loc;
 import 'dart:ui' as ui;
+
 
 class MyMap extends StatefulWidget {
   final String user_id;
@@ -107,11 +107,8 @@ class _MyMapState extends State<MyMap> {
 
   void getPolyPoints(snapshot) async {
     List<LatLng> points = getSourceAndDestination(snapshot);
-    // print(points);
     PolylinePoints polyLinePoints = PolylinePoints();
 
-    // PointLatLng(sourceLatitude!, sourceLatitude!),
-    // PointLatLng(destinationLocation.latitude, destinationLocation.longitude));
     if (!gotPolyLines){
       PolylineResult result = await polyLinePoints.getRouteBetweenCoordinates(
           googleAPIKEY,
@@ -129,6 +126,8 @@ class _MyMapState extends State<MyMap> {
     }
 
   }
+
+
 
   Set<Marker> getPoilceMarkers(snapshot){
     List<LatLng> locations = getSourceAndDestination(snapshot);
@@ -213,7 +212,7 @@ class _MyMapState extends State<MyMap> {
             (element) => element.id == widget.user_id)['latitude'],
         snapshot.data!.docs.singleWhere(
                 (element) => element.id == widget.user_id)['longitude'] as double),
-        zoom: 10,
+        zoom: 14.5,
     )));
   }
 }

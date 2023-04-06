@@ -62,6 +62,9 @@ android {
             signingConfig signingConfigs.debug
         }
     }
+    aaptOptions {
+        cruncherEnabled = false
+    }
 }
 
 flutter {
