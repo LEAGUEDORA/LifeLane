@@ -1,33 +1,33 @@
 {
   "project_info": {
-    "project_number": "902120875188",
-    "project_id": "ambulance-2-e9b86",
-    "storage_bucket": "ambulance-2-e9b86.appspot.com"
+    "project_number": "255891959625",
+    "project_id": "arched-jetty-288812",
+    "storage_bucket": "arched-jetty-288812.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:902120875188:android:4a9989d52fd9ce15d0a3e1",
+        "mobilesdk_app_id": "1:255891959625:android:c0667ea2fafb58a7e6b498",
         "android_client_info": {
           "package_name": "com.example.frontned"
         }
       },
       "oauth_client": [
         {
-          "client_id": "902120875188-cc01mn0a794d4soho3qibjshcd1lia3k.apps.googleusercontent.com",
+          "client_id": "255891959625-hbpr8m9dapq7sp5rf41j5mf91tnaapja.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyAXHIooFtldzpMTHAw1uXCO0LCE8-DvcXs"
+          "current_key": "AIzaSyArdz2b0Hq42oAYWF1UUYq2DShDOJAh1yI"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "902120875188-cc01mn0a794d4soho3qibjshcd1lia3k.apps.googleusercontent.com",
+              "client_id": "255891959625-hbpr8m9dapq7sp5rf41j5mf91tnaapja.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

@@ -1,4 +1,4 @@
-// By @19PA1A0548
+// By @LEAGUEDORA
 
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -39,7 +39,7 @@ class _MyAppState extends State<MyApp> {
         .getInstance(); // Get the instance of local storage
     var dburl = Uri.https(
         'ambulance-api-eight.vercel.app', "saveuser"); // Api call to database
-    var responsedriver = await http.post(dburl, body: {
+    await http.post(dburl, body: {
       "name": nameOfUser,
       "role": roleOfUser,
       "token": prefs.getString('token')
@@ -88,9 +88,9 @@ class _MyAppState extends State<MyApp> {
     location.enableBackgroundMode(
         enable: true); // asking the user to give background notification access
 
-    final Future<loc.LocationData> _locationResult =
+    final Future<loc.LocationData> locationResult =
         location.getLocation(); // Getting current location
-    _locationResult.then((value) => {
+    locationResult.then((value) => {
           FirebaseFirestore.instance.collection('location').doc(nameOfUser).set(
               {
                 "name": nameOfUser,
@@ -179,7 +179,7 @@ class _MyAppState extends State<MyApp> {
                         ),
                       );
                     } else {
-                      return Text("");
+                      return const Text("");
                     }
                   });
             },
@@ -189,22 +189,20 @@ class _MyAppState extends State<MyApp> {
     );
   }
 
-
-  Future<List> searchForNearestAmbulance  (
+  Future<List> searchForNearestAmbulance(
       // This algorithm finds the nearest ambulance for the user
       loc.LocationData currentLocation,
       String nameOfUser) async {
     double maximum = double.maxFinite;
     String name = "";
-    String patient = "";
 
     FirebaseFirestore.instance
         .collection('location')
         .snapshots()
         .forEach((element) {
       var data = element.docs;
-      for (var new_element in data) {
-        var data = new_element.data();
+      for (var newElement in data) {
+        var data = newElement.data();
         if (data['role'] == "driver" && data['driver'] == "") {
           double distanceInMeters = Geolocator.distanceBetween(
               currentLocation.latitude!,
@@ -216,13 +214,10 @@ class _MyAppState extends State<MyApp> {
             name = data['name'];
             insertDriverForDocument(nameOfUser,
                 name); // Assigns the nearest driver to the patient in the firebase
-
           }
         }
       }
-
     });
-    print(name);
     // Send notification to driver
     // var urldriver = Uri.https('ambulance-api-eight.vercel.app', "alertdriver");
     // var responsedriver = await http.post(urldriver, body: {
@@ -236,15 +231,20 @@ class _MyAppState extends State<MyApp> {
         Uri.https('ambulance-api-eight.vercel.app', "alertpatient");
     var responsepatient = await http.post(urlpatient, body: {
       "title": " Rescue is on the way ⚡ ",
-      'body': name + " is on the way to pick up you.",
+      'body': "$name is on the way to pick up you.",
       "name": nameOfUser,
       "id": nameOfUser
     });
+    print(responsepatient.body);
 
     // Send notifications to police
     var url = Uri.https('ambulance-api-eight.vercel.app', "alertpolice");
-    var response = await http
-        .post(url, body: {"title": "Ambulance Alert ⚠️", "body": "Clear traffic 🚥🚦🚸⛔", "id": nameOfUser});
+    var responsepolice = await http.post(url, body: {
+      "title": "Ambulance Alert ⚠️",
+      "body": "Clear traffic 🚥🚦🚸⛔",
+      "id": nameOfUser
+    });
+    print(responsepolice.body);
     return [maximum, name];
   }
 
@@ -259,22 +259,20 @@ class _MyAppState extends State<MyApp> {
   _getLocation(String nameOfUser, String roleOfUser) async {
     // Get & set the current location in firebase
     try {
-      final loc.LocationData _locationResult = await location.getLocation();
-      var returedData = searchForNearestAmbulance(_locationResult, nameOfUser);
+      final loc.LocationData locationResult = await location.getLocation();
+      searchForNearestAmbulance(locationResult, nameOfUser);
       await FirebaseFirestore.instance
           .collection('location')
           .doc(nameOfUser)
           .set({
-        'latitude': _locationResult.latitude,
-        'longitude': _locationResult.longitude,
+        'latitude': locationResult.latitude,
+        'longitude': locationResult.longitude,
         'name': nameOfUser,
         'role': roleOfUser
       }, SetOptions(merge: true));
-
     } catch (e) {
-      print(e);
+      // Do nothing
     }
-
   }
 
   Future<void> _listenLocation(String nameOfUser, String roleOfUser) async {
@@ -296,19 +294,19 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  _stopListening() {
-    // Deprecated not using. But this will stop listening to location changes
-    _locationSubscription?.cancel();
-    setState(() {
-      _locationSubscription = null;
-    });
-  }
+  // _stopListening() {
+  // Deprecated not using. But this will stop listening to location changes
+  //   _locationSubscription?.cancel();
+  //   setState(() {
+  //     _locationSubscription = null;
+  //   });
+  // }
 
   _requestPermission() async {
     // Request access to location
     var status = await Permission.location.request();
     if (status.isGranted) {
-      print("Location Status Granted");
+      // Location Granted
     } else if (status.isDenied) {
       _requestPermission();
     } else if (status.isPermanentlyDenied) {

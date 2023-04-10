@@ -1,8 +1,6 @@
-// By @LEAGUEDORA
+// By @19PA1A0548
 
 import 'dart:async';
-import 'dart:typed_data';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,9 +11,9 @@ import 'package:location/location.dart' as loc;
 import 'dart:ui' as ui;
 
 class MyMap extends StatefulWidget {
-  final String user_id; // Name of the patient
+  final String userId; // Name of the patient
 
-  MyMap(this.user_id);
+  MyMap(this.userId);
 
   @override
   _MyMapState createState() => _MyMapState();
@@ -30,7 +28,7 @@ class _MyMapState extends State<MyMap> {
   StreamSubscription<loc.LocationData>? _locationSubscription;
   List<LatLng> polyLineCoordinates = [];
   bool gotPolyLines = false;
-  Set<Marker> markers = Set();
+  Set<Marker> markers = {};
   BitmapDescriptor driver = BitmapDescriptor.defaultMarker;
   BitmapDescriptor patient = BitmapDescriptor.defaultMarker;
   BitmapDescriptor police = BitmapDescriptor.defaultMarker;
@@ -96,15 +94,14 @@ class _MyMapState extends State<MyMap> {
   }
 
   List<LatLng> getSourceAndDestination(snapshot) {
-    Set<LatLng> set = {};
     LatLng patient = LatLng(
         snapshot.data!.docs
-            .singleWhere((element) => element.id == widget.user_id)['latitude'],
+            .singleWhere((element) => element.id == widget.userId)['latitude'],
         snapshot.data!.docs.singleWhere(
-            (element) => element.id == widget.user_id)['longitude'] as double);
+            (element) => element.id == widget.userId)['longitude'] as double);
     LatLng driver = getDriver(
         snapshot.data!.docs
-            .singleWhere((element) => element.id == widget.user_id)['driver'],
+            .singleWhere((element) => element.id == widget.userId)['driver'],
         snapshot);
 
     return [patient, driver];
@@ -121,8 +118,9 @@ class _MyMapState extends State<MyMap> {
           PointLatLng(points[1].latitude, points[1].longitude));
       if (result.points.isNotEmpty) {
         polyLineCoordinates = [];
-        result.points.forEach((PointLatLng point) =>
-            polyLineCoordinates.add(LatLng(point.latitude, point.longitude)));
+        for (var point in result.points) {
+          polyLineCoordinates.add(LatLng(point.latitude, point.longitude));
+        }
       }
       setState(() {
         gotPolyLines = true;
@@ -132,16 +130,16 @@ class _MyMapState extends State<MyMap> {
 
   Set<Marker> getPoilceMarkers(snapshot) {
     List<LatLng> locations = getSourceAndDestination(snapshot);
-    FirebaseFirestore.instance
-        .collection('location')
-        .snapshots()
-        .forEach((element) {
+    late final stream =
+        FirebaseFirestore.instance.collection('location').snapshots();
+
+    stream.forEach((element) {
       for (var doc in element.docs) {
         if (doc['role'] == "police") {
           markers.add(
             Marker(
                 position: LatLng(doc['latitude'], doc['longitude']),
-                markerId: MarkerId("police" + doc['name']),
+                markerId: MarkerId("police ${doc['name']}"),
                 icon: police),
           );
         }
@@ -151,13 +149,13 @@ class _MyMapState extends State<MyMap> {
     markers.add(
       Marker(
           position: LatLng(locations[0].latitude, locations[0].longitude),
-          markerId: MarkerId("source"), // Patient
+          markerId: const MarkerId("patient"), // Patient
           icon: patient),
     );
     markers.add(
       Marker(
           position: LatLng(locations[1].latitude, locations[1].longitude),
-          markerId: MarkerId("destination"), // Driver
+          markerId: const MarkerId("driver"), // Driver
           icon: driver),
     );
 
@@ -166,10 +164,12 @@ class _MyMapState extends State<MyMap> {
 
   @override
   Widget build(BuildContext context) {
+    late final stream =
+        FirebaseFirestore.instance.collection('location').snapshots();
     return Scaffold(
         appBar: AppBar(title: const Text("Track it")),
         body: StreamBuilder(
-          stream: FirebaseFirestore.instance.collection('location').snapshots(),
+          stream: stream,
           builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
             if (_added) {
               mymap(snapshot);
@@ -179,9 +179,9 @@ class _MyMapState extends State<MyMap> {
             }
             LatLng destinationLocation = LatLng(
                 snapshot.data!.docs.singleWhere(
-                    (element) => element.id == widget.user_id)['latitude'],
+                    (element) => element.id == widget.userId)['latitude'],
                 snapshot.data!.docs.singleWhere(
-                        (element) => element.id == widget.user_id)['longitude']
+                        (element) => element.id == widget.userId)['longitude']
                     as double);
             getPolyPoints(snapshot);
             return GoogleMap(
@@ -212,10 +212,9 @@ class _MyMapState extends State<MyMap> {
         .animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
       target: LatLng(
           snapshot.data!.docs.singleWhere(
-              (element) => element.id == widget.user_id)['latitude'],
+              (element) => element.id == widget.userId)['latitude'],
           snapshot.data!.docs.singleWhere(
-                  (element) => element.id == widget.user_id)['longitude']
-              as double),
+              (element) => element.id == widget.userId)['longitude'] as double),
       zoom: 14.5,
     )));
   }

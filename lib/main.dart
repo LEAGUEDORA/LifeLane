@@ -4,13 +4,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:frontned/askname.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:frontned/initializer.dart';
-import 'package:localstorage/localstorage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void requestNotificationPermission() async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
-  NotificationSettings settings = await messaging.requestPermission(
+  await messaging.requestPermission(
       alert: true,
       announcement: false,
       badge: true,
